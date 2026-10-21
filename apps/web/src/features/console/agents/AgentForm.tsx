@@ -138,7 +138,7 @@ export function AgentForm(props: ConsoleController & { disabled: boolean }) {
               rows={4}
               maxLength={AGENT_ROLE_DESCRIPTION_LIMIT}
               value={agent.roleDescription ?? ''}
-              placeholder="例如：你是一名建筑师，负责规划和建造房屋。施工前先确认位置、尺寸和风格，遇到障碍先说明情况，用简洁的中文汇报进度。"
+              placeholder="留空则使用 AI 小学默认人格：热情的同学伙伴，会打招呼、起哄、鼓励，并用 @ 你布置一个小共建任务。也可以写成你自己的角色。"
               aria-describedby="agent-role-hint"
               onChange={(event) =>
                 setAgent({ ...agent, roleDescription: event.target.value })

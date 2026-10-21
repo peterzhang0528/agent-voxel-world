@@ -41,12 +41,18 @@ export class Session {
   private pending = new Map<string, (value: any) => void>();
 
   /** Discover active world room via HTTP, connect over WebSocket, and wait for initial snapshot. */
-  async join(name: string, kind = 'scripted-agent') {
+  async join(
+    name: string,
+    kind = 'scripted-agent',
+    options: Record<string, unknown> = {},
+  ) {
     const endpoint = this.serverUrl.replace(/^ws/, 'http');
     const info = (await fetch(`${endpoint}/world`).then((r) => r.json())) as {
       roomId: string;
     };
-    this.attach(await this.client.joinById(info.roomId, { name, kind }));
+    this.attach(
+      await this.client.joinById(info.roomId, { name, kind, ...options }),
+    );
     await until(() => !!this.snapshot);
     return this;
   }

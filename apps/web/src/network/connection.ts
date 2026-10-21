@@ -5,6 +5,8 @@ import {
   key,
   PLAYER_NAME_TAKEN,
   PLAYER_NAME_TAKEN_MESSAGE,
+  PLOT_FULL,
+  PLOT_FULL_MESSAGE,
   type Block,
   type Player,
   type Snapshot,
@@ -12,7 +14,21 @@ import {
   type WorldEvent,
   type ChatEntry,
   type AgentSpeechEvent,
+  type PlotAssignment,
 } from '@voxel/shared';
+const EDIT_ERROR: Record<string, string> = {
+  'plot-readonly': '公共走道不能改方块',
+  'plot-boundary': '围栏不能拆，边界要留着',
+  'plot-unclaimed': '这块地盘还没人认领',
+  'plot-forbidden': '这是别人的地盘',
+  bounds: '这个位置不能改',
+  conflict: '有人刚改过这里，已刷新',
+  'out-of-reach': '太远了',
+  'player-occupied': '那里站着人',
+  unsupported: '方块悬空了',
+  occupied: '这里已经有方块',
+  empty: '这里没有方块',
+};
 export class Connection {
   room?: Room;
   blocks = new Map<string, Block>();
@@ -21,6 +37,7 @@ export class Connection {
   status = 'lobby';
   joinError = '';
   persistence = 'memory';
+  plot?: PlotAssignment;
   messages: string[] = [];
   chats: ChatEntry[] = [];
   chatToken = '';
@@ -124,6 +141,7 @@ export class Connection {
         this.blocks = new Map(s.blocks.map((b) => [key(b), b]));
         this.revision = s.revision;
         this.persistence = s.persistence;
+        if (s.plot) this.plot = s.plot;
         this.onBlocks();
         this.onChange();
       });
@@ -178,7 +196,8 @@ export class Connection {
             else reply.reject(Error(r.error || '发送失败。'));
           }
           if (!r.ok && r.error !== 'voice-provider-unavailable') {
-            this.messages = [...this.messages, `⚠ ${r.error}`].slice(-30);
+            const reason = (r.error && EDIT_ERROR[r.error]) || r.error;
+            this.messages = [...this.messages, `⚠ ${reason}`].slice(-30);
             this.onChange();
           }
         },
@@ -226,10 +245,13 @@ export class Connection {
         error &&
         typeof error === 'object' &&
         'code' in error &&
-        error.code === PLAYER_NAME_TAKEN
+        (error.code === PLAYER_NAME_TAKEN || error.code === PLOT_FULL)
       ) {
         this.status = 'lobby';
-        this.joinError = PLAYER_NAME_TAKEN_MESSAGE;
+        this.joinError =
+          error.code === PLOT_FULL
+            ? PLOT_FULL_MESSAGE
+            : PLAYER_NAME_TAKEN_MESSAGE;
         sessionStorage.removeItem('voxel-reconnect');
         sessionStorage.removeItem('voxel-name');
         this.onChange();
@@ -260,6 +282,7 @@ export class Connection {
     this.status = 'lobby';
     this.joinError = '';
     this.players = [];
+    this.plot = undefined;
     this.messages = [];
     this.chats = [];
     this.clearCommunication();

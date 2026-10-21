@@ -33,7 +33,9 @@ export function GameFooter({
           </button>
         ))}
       </div>
-      <small className="build-hint">左键拆除 · 右键放置</small>
+      <small className="build-hint">
+        左键拆除 · 右键放置 · 只能改自己的地盘
+      </small>
       <div className="build-actions">
         <button disabled={!isConnected} onClick={() => onEditBlock(false)}>
           拆除

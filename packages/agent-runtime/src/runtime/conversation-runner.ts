@@ -9,7 +9,7 @@ import type { ModelEndpoint } from '../contracts';
 import { AgentRuntimeError } from '../errors';
 import { RequestBudget } from '../task/budget';
 import { TaskService } from '../task/service';
-import { worldView, conversationPrompt } from '../pi/prompts';
+import { campusRole, worldView, conversationPrompt } from '../pi/prompts';
 import { conversationTools } from '../pi/conversation-tools';
 import { loopState, runPiLoop } from './pi-loop';
 import type { RunOptions } from './options';
@@ -133,7 +133,7 @@ export class ConversationRunner {
         shouldYield: () => false,
         input: JSON.stringify({
           character: {
-            roleDescription: config.roleDescription ?? '',
+            roleDescription: campusRole(config.roleDescription),
             skills: config.skills ?? [],
           },
           observation: worldView({

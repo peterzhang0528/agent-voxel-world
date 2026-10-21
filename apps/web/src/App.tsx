@@ -104,6 +104,24 @@ export function App({ connection }: { connection: Connection }) {
         />
       </LobbyLayout>
 
+      {joined && connection.plot && (
+        <aside className="plot-banner" data-hud aria-live="polite">
+          <strong>地盘 {connection.plot.id}</strong>
+          <span>伙伴 {connection.plot.companionName} 会带节奏</span>
+          <small>围栏内可建造 · 走道和围栏只读 · 看下面的群聊</small>
+          <ul>
+            {connection.chats.slice(-3).map((entry) => (
+              <li key={entry.seq}>
+                {entry.data.name}：{entry.data.text}
+              </li>
+            ))}
+          </ul>
+          {connection.messages.at(-1)?.startsWith('⚠') && (
+            <em>{connection.messages.at(-1)}</em>
+          )}
+        </aside>
+      )}
+
       {joined && (
         <>
           <div className="crosshair">+</div>

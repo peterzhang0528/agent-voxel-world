@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { BailianConfig } from '../realtime/bailian-session';
 import { env } from '../../config/env';
 import { RealtimeHub } from '../realtime/hub';
@@ -11,6 +12,7 @@ import {
   type VoiceProvider,
 } from '../audio/session/voice';
 import { WorldStore } from './store';
+import { PlotCompanion } from './companion';
 import { Room, Client, ServerError } from '@colyseus/core';
 import { Avatar, WorldState } from './schema';
 import {
@@ -28,7 +30,16 @@ import {
   distance,
   WORLD_ID,
   visibleEvent,
+  fenceBlocks,
+  Campus,
+  plotById,
+  plotCenter,
+  plotEditError,
+  assignmentFor,
+  PLOT_FULL,
+  PLOT_FULL_MESSAGE,
   type ChatData,
+  type PlotClaim,
   type WorldPresence,
   type Input,
   type Edit,
@@ -57,6 +68,11 @@ export class WorldRoom extends Room<WorldState> {
   );
   blocks = terrain();
   store!: WorldStore;
+  serverUrl = '';
+  private campus = new Campus();
+  private companionInvites = new Map<string, string>();
+  private companionTasks = new Map<string, PlotCompanion>();
+  private startingCompanions = new Set<string>();
   private bodies = new Map<
     string,
     { vy: number; grounded: boolean; input: Input; lastInput: number }
@@ -91,7 +107,7 @@ export class WorldRoom extends Room<WorldState> {
   );
   private queue: Promise<void> = Promise.resolve();
   autoDispose = false;
-  maxClients = 16;
+  maxClients = 32;
   async onCreate(
     options: {
       voiceServices?: VoiceServiceStore;
@@ -114,6 +130,7 @@ export class WorldRoom extends Room<WorldState> {
     this.setState(new WorldState());
     try {
       this.state.revision = await this.store.load(this.blocks);
+      for (const block of fenceBlocks()) this.blocks.set(key(block), block);
     } catch (error) {
       activeRoom = false;
       throw error;
@@ -325,6 +342,12 @@ export class WorldRoom extends Room<WorldState> {
               if (error === 'conflict') this.snapshot(client);
               return;
             }
+            const plotError = plotEditError(
+              payload as Edit,
+              client.sessionId,
+              this.campus.list(),
+            );
+            if (plotError) return this.reply(client, id, false, plotError);
             const edit = payload as Edit;
             await this.store.save(edit);
             if (edit.material === null) this.blocks.delete(key(edit));
@@ -374,8 +397,14 @@ export class WorldRoom extends Room<WorldState> {
       }
     }, 50);
   }
-  onJoin(client: Client, options: { name?: string; kind?: string }) {
-    const name = normalizePlayerName(options.name);
+  onJoin(
+    client: Client,
+    options: { name?: string; kind?: string; companionToken?: unknown },
+  ) {
+    const invited = this.peekCompanion(options.companionToken);
+    const name = invited
+      ? invited.companionName
+      : normalizePlayerName(options.name);
     // Check and claim synchronously, including avatars held for reconnection.
     if (
       [...this.state.players.values()].some(
@@ -384,18 +413,34 @@ export class WorldRoom extends Room<WorldState> {
     ) {
       throw new ServerError(PLAYER_NAME_TAKEN, PLAYER_NAME_TAKEN_MESSAGE);
     }
+    let claim = invited;
+    if (!claim) {
+      if (options.kind === 'ai-agent' || options.kind === 'scripted-agent')
+        claim = undefined;
+      else {
+        try {
+          claim = this.campus.claim(client.sessionId, name);
+        } catch (error) {
+          if (error instanceof Error && error.message === 'plot-full')
+            throw new ServerError(PLOT_FULL, PLOT_FULL_MESSAGE);
+          throw error;
+        }
+      }
+    }
     const p = new Avatar();
     p.id = client.sessionId;
     p.name = name;
-    p.kind =
-      options.kind === 'ai-agent'
+    p.kind = invited
+      ? 'ai-agent'
+      : options.kind === 'ai-agent'
         ? 'ai-agent'
         : options.kind === 'scripted-agent'
           ? 'scripted-agent'
           : 'human';
+    const spot = claim ? plotCenter(plotById(claim.plotId)!) : undefined;
     const slot = this.state.players.size;
-    p.x = (slot % 3) - 1;
-    p.z = (Math.floor(slot / 3) % 3) - 1;
+    p.x = spot ? spot.x : (slot % 3) - 1;
+    p.z = spot ? spot.z + (invited ? 0.35 : 0) : (Math.floor(slot / 3) % 3) - 1;
     // Spawn above the highest edited cell to avoid trapping new players.
     p.y =
       Math.max(
@@ -404,6 +449,10 @@ export class WorldRoom extends Room<WorldState> {
           .filter((b) => b.x === Math.round(p.x) && b.z === Math.round(p.z))
           .map((b) => b.y),
       ) + 0.55;
+    if (invited) {
+      this.companionInvites.delete(options.companionToken as string);
+      this.campus.bindCompanion(invited.plotId, client.sessionId);
+    }
     this.state.players.set(p.id, p);
     this.bodies.set(p.id, {
       vy: 0,
@@ -413,7 +462,12 @@ export class WorldRoom extends Room<WorldState> {
     });
     this.snapshot(client);
     client.send('chat.auth', { token: this.chat.issue(p.id) });
-    this.event('joined', p.id, { name: p.name, kind: p.kind });
+    this.event('joined', p.id, {
+      name: p.name,
+      kind: p.kind,
+      plotId: claim?.plotId,
+    });
+    if (claim && !invited) this.ensureCompanion(claim);
   }
   async onLeave(client: Client, consented: boolean) {
     // Colyseus also calls onLeave when onJoin rejects before creating an avatar.
@@ -443,6 +497,7 @@ export class WorldRoom extends Room<WorldState> {
         return;
       } catch {}
     }
+    this.releaseSeat(client.sessionId);
     this.state.players.delete(client.sessionId);
     this.bodies.delete(client.sessionId);
     this.budget.delete(client.sessionId);
@@ -450,6 +505,9 @@ export class WorldRoom extends Room<WorldState> {
     this.event('left', client.sessionId, {});
   }
   async onDispose() {
+    this.disposing = true;
+    for (const companion of this.companionTasks.values()) companion.stop();
+    this.companionTasks.clear();
     this.releaseVoiceServices?.();
     this.realtime.dispose();
     this.agentSpeech.close();
@@ -480,11 +538,71 @@ export class WorldRoom extends Room<WorldState> {
       })),
     };
   }
+  bindServerUrl(url: string) {
+    this.serverUrl = url;
+  }
+  private disposing = false;
+  private peekCompanion(token: unknown) {
+    if (token === undefined) return undefined;
+    if (typeof token !== 'string')
+      throw new ServerError(4403, '无效的伙伴邀请');
+    const plotId = this.companionInvites.get(token);
+    const claim = plotId ? this.campus.byPlot(plotId) : undefined;
+    if (!claim) throw new ServerError(4403, '无效的伙伴邀请');
+    return claim;
+  }
+  private ensureCompanion(claim: PlotClaim) {
+    if (
+      claim.companionSessionId ||
+      this.startingCompanions.has(claim.plotId) ||
+      this.companionTasks.has(claim.plotId)
+    )
+      return;
+    if (!this.serverUrl) {
+      console.warn('campus companion skipped: world URL is not ready');
+      return;
+    }
+    this.startingCompanions.add(claim.plotId);
+    const token = randomUUID();
+    this.companionInvites.set(token, claim.plotId);
+    const companion = new PlotCompanion({
+      serverUrl: this.serverUrl,
+      token,
+      claim,
+    });
+    this.companionTasks.set(claim.plotId, companion);
+    void companion
+      .start()
+      .catch((error) => {
+        console.error('companion failed', claim.plotId, error);
+        this.companionInvites.delete(token);
+        if (this.companionTasks.get(claim.plotId) === companion)
+          this.companionTasks.delete(claim.plotId);
+      })
+      .finally(() => this.startingCompanions.delete(claim.plotId));
+  }
+  private releaseSeat(sessionId: string) {
+    const claim = this.campus.forSession(sessionId);
+    if (!claim) return;
+    if (claim.companionSessionId === sessionId) {
+      this.campus.companionLeft(sessionId);
+      this.companionTasks.get(claim.plotId)?.stop();
+      this.companionTasks.delete(claim.plotId);
+      if (!this.disposing && claim.ownerSessionId) this.ensureCompanion(claim);
+      return;
+    }
+    if (claim.ownerSessionId === sessionId) this.campus.ownerLeft(sessionId);
+  }
   private snapshot(client: Client) {
+    const claim = this.campus.forSession(client.sessionId);
     client.send('snapshot', {
       blocks: [...this.blocks.values()],
       revision: this.state.revision,
       persistence: this.store.mode,
+      plot:
+        claim && claim.ownerSessionId === client.sessionId
+          ? assignmentFor(claim)
+          : undefined,
     });
   }
   private reply(client: Client, id: string, ok: boolean, error?: string) {
