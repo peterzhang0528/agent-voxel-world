@@ -4,11 +4,12 @@ import { Connection } from '../network/connection';
 import { isInteractiveTarget } from './controls/input-target';
 import { VoxelAvatar } from './entities/avatar';
 export type TargetBlock = Pick<Block, 'material' | 'x' | 'y' | 'z'>;
-const colors = {
+const colors: Record<Material, number> = {
   grass: 0x6b9c52,
   dirt: 0x9c7353,
   stone: 0x8c999b,
   wood: 0xc19766,
+  fence: 0xe07a3d,
 };
 export class WorldScene {
   renderer: THREE.WebGLRenderer;

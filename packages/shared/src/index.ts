@@ -20,7 +20,7 @@ export const PROTOCOL_VERSION = 1;
 export const LIMIT = 12;
 export const MAX_Y = 15;
 export const REACH = 6;
-export type Material = 'grass' | 'dirt' | 'stone' | 'wood';
+export type Material = 'grass' | 'dirt' | 'stone' | 'wood' | 'fence';
 export type Vec3 = { x: number; y: number; z: number };
 export type Block = Vec3 & { material: Material };
 export type Player = Vec3 & {
@@ -48,6 +48,7 @@ export type Snapshot = {
   blocks: Block[];
   revision: number;
   persistence: string;
+  plot?: import('./campus').PlotAssignment;
 };
 export type WorldEvent = {
   actorKind?: string;
@@ -196,3 +197,5 @@ export function parseInput(value: unknown): Input | null {
 export * from './task-plans';
 
 export * from './task-timing.js';
+
+export * from './campus';

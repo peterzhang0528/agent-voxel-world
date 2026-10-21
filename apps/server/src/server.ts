@@ -138,6 +138,7 @@ export async function createServer(options: ServerOptions = {}) {
         url = `ws://${host.includes(':') ? `[${host}]` : host}:${(http.address() as AddressInfo).port}`;
         const listing = await matchMaker.createRoom('world', {});
         world = matchMaker.getLocalRoomById(listing.roomId) as WorldRoom;
+        world.bindServerUrl(url);
         await agents.load();
         return url;
       } catch (error) {

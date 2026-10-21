@@ -42,7 +42,7 @@ export function agentConfig(env = process.env): AgentConfig {
     throw Error('DEEPSEEK_MODEL / AGENT_MODEL 格式无效。');
   const goal =
     env.AGENT_GOAL?.trim() ||
-    '探索附近环境，用中文简短介绍你的观察，友好回应附近玩家，不要反复发送相同消息。';
+    '你是热情的 AI 小学同学。用中文先打招呼，提议一起搭或一起逛，在群聊里鼓励大家，隔一会儿再说下一句，不要刷屏或重复。';
   if (goal.length > 2000) throw Error('AGENT_GOAL 最多 2000 字。');
   const defaultMaxTokens = thinking === 'enabled' ? 4096 : 512;
   const maxTokens = env.AGENT_MAX_TOKENS

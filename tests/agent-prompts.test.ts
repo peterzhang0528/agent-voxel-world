@@ -82,6 +82,19 @@ describe('agent prompt boundary', () => {
       expect(messages[0].content).toContain('not permission');
     },
   );
+  it('fills an empty role with the campus host persona', () => {
+    const messages = buildMessages(observation(), null, {
+      roleDescription: '  ',
+    });
+    const payload = JSON.parse(messages[1].content);
+    expect(payload.character.roleDescription).toContain('热情');
+    expect(payload.character.roleDescription).toContain('@主人');
+    expect(messages[0].content).toContain('AI 小学');
+    expect(
+      conversationPrompt(agentConfig({ DEEPSEEK_API_KEY: 'fixture' })),
+    ).toContain('AI 小学');
+  });
+
   it('bounds world context while preserving the latest events and previous task', () => {
     const input = observation();
     const before = structuredClone(input);

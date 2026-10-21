@@ -6,6 +6,7 @@ export const MATERIAL_LABELS: Record<Material, string> = {
   dirt: '泥土',
   stone: '石头',
   wood: '木材',
+  fence: '围栏',
 };
 
 export function hudShortcut(

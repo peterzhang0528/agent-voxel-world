@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { Session, delay, until } from '@voxel/agent-runtime';
+import { height, plotAt } from '../../../packages/shared/src/index';
 import { createTestServer } from '../../server/test/helpers/test-server';
 const server = await createTestServer();
 const a = await new Session(server.url).join('Test-A', 'human'),
@@ -49,26 +50,53 @@ try {
   tests.push(
     'action whitelist, malformed movement, bedrock and reach validation',
   );
-  const cell = { x: 2, y: 3, z: 1 };
+  await until(
+    () =>
+      a.events.filter(
+        (event) =>
+          event.type === 'chat' &&
+          String((event.data as { text?: string }).text ?? '').includes(
+            '同学们好呀',
+          ),
+      ).length >= 2,
+    15000,
+  );
+  tests.push('campus companions greet and @ their owners');
+  const self = (await a.observe()).self;
+  const owned = plotAt(Math.round(self.x), Math.round(self.z));
+  assert(owned, 'human spawn is inside a claimed plot');
+  const cell = {
+    x: owned.maxX - 1,
+    y: height(owned.maxX - 1, owned.maxZ - 1) + 1,
+    z: owned.maxZ - 1,
+  };
   o = await a.observe();
-  if (
-    o.blocks.some((v) => v.x === cell.x && v.y === cell.y && v.z === cell.z)
-  ) {
-    assert.equal(
-      (
-        await a.request('edit', {
-          ...cell,
-          material: null,
-          revision: o.revision,
-        })
-      ).ok,
-      true,
-    );
-    o = await a.observe();
-  }
+  assert.equal(
+    (
+      await a.request('edit', {
+        x: owned.minX,
+        y: height(owned.minX, owned.minZ + 2) + 1,
+        z: owned.minZ + 2,
+        material: null,
+        revision: o.revision,
+      })
+    ).error,
+    'plot-boundary',
+  );
+  assert.equal(
+    (
+      await b.request('edit', {
+        ...cell,
+        material: 'stone',
+        revision: (await b.observe()).revision,
+      })
+    ).ok,
+    false,
+  );
+  o = await a.observe();
   const [r1, r2] = await Promise.all([
     a.request('edit', { ...cell, material: 'wood', revision: o.revision }),
-    b.request('edit', { ...cell, material: 'stone', revision: o.revision }),
+    a.request('edit', { ...cell, material: 'stone', revision: o.revision }),
   ]);
   assert.equal(Number(r1.ok) + Number(r2.ok), 1);
   assert.equal((r1.ok ? r2 : r1).error, 'conflict');
