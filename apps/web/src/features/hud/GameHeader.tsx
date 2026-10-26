@@ -1,3 +1,5 @@
+import { InviteTutorButton } from '../world/InviteTutorButton';
+
 interface GameHeaderProps {
   connectionStatus: string;
   joined: boolean;
@@ -65,6 +67,7 @@ export function GameHeader({
           >
             菜单
           </button>
+          <InviteTutorButton compact />
         </nav>
       </header>
     );

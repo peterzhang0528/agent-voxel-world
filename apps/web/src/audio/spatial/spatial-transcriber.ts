@@ -24,11 +24,11 @@ export class SpatialTranscriber {
     this.state = { ...this.state, ...update };
     this.changed({ ...this.state });
   }
-  async start(stream: MediaStream) {
+  async start(stream: MediaStream, language = 'zh-CN') {
     this.stop();
     this.report({ text: '', partial: '', error: '' });
     await this.live.start(
-      'zh-CN',
+      language,
       {
         onState: (_state, status) => this.report({ status }),
         onStatus: (status) => this.report({ status }),
@@ -52,7 +52,7 @@ export class SpatialTranscriber {
           }),
       },
       stream,
-      speechTransport('zh-CN', this.token, this.request),
+      speechTransport(language, this.token, this.request),
     );
   }
   stop() {

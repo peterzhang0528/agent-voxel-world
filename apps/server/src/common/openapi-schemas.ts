@@ -84,6 +84,7 @@ const agentProfileProperties = {
   name: { ...text, maxLength: 24 },
   model: { ...text, maxLength: 128 },
   roleDescription: { ...text, maxLength: 2000 },
+  persona: { ...text, enum: ['', 'english-tutor'] },
   permissions: {
     type: 'object',
     properties: Object.fromEntries(

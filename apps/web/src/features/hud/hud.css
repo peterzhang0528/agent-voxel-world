@@ -323,8 +323,16 @@
 }
 .spatial-toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 5px;
+}
+.spatial-speak-note {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: right;
 }
 .in-game .spatial-toolbar button {
   background: var(--hud-paper);

@@ -3,6 +3,9 @@ import { createServer } from './server';
 
 try {
   const config = env.load();
+  // Memory mode is the no-database local session. Tests pass their own config.
+  if (process.env.ENGLISH_COMPANION === undefined && !config.databaseUrl)
+    config.englishCompanion = true;
   const server = await createServer({ config });
   const url = (await server.listen()).replace(/^ws:/, 'http:');
   console.log(

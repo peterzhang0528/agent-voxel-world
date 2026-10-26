@@ -32,6 +32,10 @@ import { AgentHost, type ExecutionContext } from './host';
 import { AgentPersistence } from './persistence';
 import { AgentPlanCoordinator } from './plan-coordinator';
 import { endedRun, newPlan, validatePlan } from '../tasks';
+import {
+  inviteEnglishTutor as runEnglishTutorInvite,
+  type EnglishTutorInvite,
+} from './english-tutor';
 
 export * from './validation';
 
@@ -43,6 +47,7 @@ export class AgentOrchestrator {
   readonly planCoordinator: AgentPlanCoordinator;
 
   private closing = false;
+  private tutorInvite?: Promise<EnglishTutorInvite>;
   private closePromise?: Promise<void>;
   private shutdownPresence = new Map<string, Job['view']['status']>();
   private probing = new Set<string>();
@@ -308,6 +313,12 @@ export class AgentOrchestrator {
     } finally {
       this.probing.delete(id);
     }
+  }
+
+  inviteEnglishTutor() {
+    return (this.tutorInvite ??= runEnglishTutorInvite(this).finally(() => {
+      this.tutorInvite = undefined;
+    }));
   }
 
   create(value: unknown) {

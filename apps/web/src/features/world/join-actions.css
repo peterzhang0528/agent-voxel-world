@@ -3,3 +3,13 @@
   background: var(--surface-control);
   color: var(--color-action);
 }
+.join .join-tutor {
+  margin-top: 8px;
+  background: #e7f2df;
+  color: #245c32;
+}
+.join .join-tutor + p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}

@@ -2,6 +2,7 @@ import { AppError } from '../../common/errors';
 import { object, text, integer, boolean } from '../../common/validation';
 import {
   AGENT_ROLE_DESCRIPTION_LIMIT,
+  ENGLISH_TUTOR_PERSONA,
   validateCapabilities,
   type AgentSettings,
 } from '@voxel/shared';
@@ -79,6 +80,7 @@ export function validateAgent(
       '角色设定',
       AGENT_ROLE_DESCRIPTION_LIMIT,
     ),
+    persona: agentPersona(input.persona),
     ...inference,
     maxTurns: integer(input.maxTurns, '任务调用上限', 100, 1, 200),
     tokenBudget: integer(
@@ -106,6 +108,12 @@ export function validateAgent(
       input.voiceReplies ? 'local-default' : '',
     ),
   };
+}
+
+function agentPersona(value: unknown): AgentSettings['persona'] {
+  if (value === undefined || value === '') return '';
+  if (value === ENGLISH_TUTOR_PERSONA) return ENGLISH_TUTOR_PERSONA;
+  throw new AppError('角色类型无效。目前只支持英语外教 english-tutor。');
 }
 
 /** Public profile writes cannot create or replace task execution. Empty legacy goals are harmless. */
