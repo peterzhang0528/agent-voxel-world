@@ -50,9 +50,10 @@ export function speechTransport(
     begin: async (signal) =>
       token ? (await call('/chat/spatial/start', signal)).id : '',
     recognize: async (id, audio, partial, signal) => {
+      const spoken = language.startsWith('en') ? 'en' : 'zh';
       const path = token
-        ? `/chat/spatial/${encodeURIComponent(id)}${partial ? '/preview' : ''}`
-        : `/voice/transcribe?language=${language.startsWith('zh') ? 'zh' : 'en'}${partial ? '&partial=1' : ''}${serviceId ? `&serviceId=${encodeURIComponent(serviceId)}` : ''}`;
+        ? `/chat/spatial/${encodeURIComponent(id)}${partial ? '/preview' : ''}${spoken === 'en' ? '?language=en' : ''}`
+        : `/voice/transcribe?language=${spoken}${partial ? '&partial=1' : ''}${serviceId ? `&serviceId=${encodeURIComponent(serviceId)}` : ''}`;
       const value = await call(path, signal, audio);
       if (value.noSpeech) return '';
       if (

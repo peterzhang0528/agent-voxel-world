@@ -5,6 +5,7 @@ export const initialAgent: AgentSettings = {
   name: '',
   goal: '',
   roleDescription: '',
+  persona: '',
   continuous: false,
   intervalMode: 'fixed',
   intervalMinMs: 4000,

@@ -181,6 +181,9 @@ function readServerConfig(env: EnvLookup = process.env) {
       origins: gatewayOrigins,
     },
     realtime: readRealtimeConfig(env),
+    englishCompanion: ['1', 'true', 'yes'].includes(
+      (env.ENGLISH_COMPANION ?? '').trim().toLowerCase(),
+    ),
   };
 }
 

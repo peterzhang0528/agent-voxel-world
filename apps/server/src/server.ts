@@ -139,6 +139,14 @@ export async function createServer(options: ServerOptions = {}) {
         const listing = await matchMaker.createRoom('world', {});
         world = matchMaker.getLocalRoomById(listing.roomId) as WorldRoom;
         await agents.load();
+        if (config.englishCompanion) {
+          try {
+            const tutor = await agents.inviteEnglishTutor();
+            console.log(tutor.message);
+          } catch (error) {
+            console.warn(`英语外教未能自动加入：${(error as Error).message}`);
+          }
+        }
         return url;
       } catch (error) {
         await close();

@@ -168,10 +168,7 @@ export class VoiceServiceStore {
       }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
-        throw new AppError(
-          '无法读取语音服务配置，请检查本地配置文件。',
-          500,
-        );
+        throw new AppError('无法读取语音服务配置，请检查本地配置文件。', 500);
       this.values = [
         {
           ...validateVoiceService({
@@ -212,6 +209,21 @@ export class VoiceServiceStore {
     const operation = this.queue.then(fn);
     this.queue = operation.catch(() => {});
     return operation;
+  }
+  ensure(id: string, value: unknown) {
+    return this.mutate(async () => {
+      if (!/^[a-zA-Z0-9-]{1,80}$/.test(id))
+        throw new AppError('语音服务标识无效。');
+      const current = this.values.find((service) => service.id === id);
+      if (current) return publicView(current);
+      if (this.values.length >= 20)
+        throw new AppError('最多保存 20 个语音服务。');
+      const entry = { ...validateVoiceService(value), id };
+      const next = [...this.values, entry];
+      await this.persist(next);
+      this.values = next;
+      return publicView(entry);
+    });
   }
   save(value: unknown, id?: string) {
     return this.mutate(async () => {

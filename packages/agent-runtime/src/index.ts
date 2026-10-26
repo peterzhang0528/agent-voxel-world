@@ -36,6 +36,13 @@ export {
 export { listModels } from './models/catalog';
 
 export { AgentAttention } from './runtime/attention';
+export {
+  ENGLISH_TUTOR_CUE_MS,
+  addressEnglishTutor,
+  companionCueText,
+  englishTutorConversation,
+  englishTutorTask,
+} from './runtime/english-tutor';
 
 export { newTask, restoreBatchHistory, type AgentRunState } from './task/state';
 

@@ -267,7 +267,7 @@ export function installChatRoutes(
         const text = await scheduleSpeech(speech).transcribe(
           Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0),
           req.headers['content-type'] ?? '',
-          'zh',
+          req.query.language === 'en' ? 'en' : 'zh',
           signal,
           partial,
         );

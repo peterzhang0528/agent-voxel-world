@@ -3,6 +3,17 @@ export * from './player-name';
 export * from './voice-services';
 export * from './asr';
 export * from './agent-capabilities';
+export {
+  ENGLISH_TUTOR_PERSONA,
+  ENGLISH_TUTOR_NAME,
+  ENGLISH_TUTOR_VOICE_ID,
+  ENGLISH_TUTOR_ROLE,
+  ENGLISH_TUTOR_GOAL,
+  englishTutorPlan,
+  englishTutorProfile,
+  isEnglishTutor,
+} from './english-tutor';
+export type { EnglishTutorPersona } from './english-tutor';
 export type { LocalCollisionMap } from './navigation';
 export const WORLD_ID = 'meadow';
 export { AGENT_ROLE_DESCRIPTION_LIMIT, AGENT_LOG_LIMIT } from './agents';

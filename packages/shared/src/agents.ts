@@ -24,6 +24,8 @@ export type AgentSettings = {
   goal: string;
   /** Persistent identity, responsibilities and style, independent of a task. */
   roleDescription?: string;
+  /** Optional built-in companion. Empty keeps the generic agent. */
+  persona?: '' | 'english-tutor';
   /** Legacy compatibility only; task continuation is decided from progress. */
   continuous: boolean;
   /** Maximum model calls per task, not a target number of turns. */

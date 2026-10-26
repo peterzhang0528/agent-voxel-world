@@ -3,13 +3,18 @@ import {
   hasPlanTokenLimit,
   executionLimits,
   DEFAULT_TASK_LIMITS,
+  isEnglishTutor,
   type ManagedAgentView,
   type ChatData,
+  type WorldEvent,
 } from '@voxel/shared';
 import {
   AgentAttention,
+  ENGLISH_TUTOR_CUE_MS,
   TaskService,
   AgentRuntimeError,
+  addressEnglishTutor,
+  companionCueText,
   type AgentConfig,
   type AgentRunner,
   type Session,
@@ -97,7 +102,7 @@ export class AgentHost {
         await session.join(job.view.name, 'ai-agent');
         job.view.sessionId = session.room.sessionId;
 
-        session.onEvent = (event) => {
+        session.onEvent = (incoming: WorldEvent) => {
           if (
             ctx.closing() ||
             job.controlling ||
@@ -105,7 +110,39 @@ export class AgentHost {
             !['running', 'idle', 'failed'].includes(job.view.status)
           )
             return;
-          if (!job.attention.accept(event, session.room.sessionId)) return;
+          const selfId = session.room.sessionId;
+          const tutor = isEnglishTutor(job.view.persona);
+          if (tutor) {
+            const cue = companionCueText(incoming, selfId);
+            if (cue) {
+              const task = job.memory.task;
+              const staying =
+                incoming.type === 'joined' &&
+                !!task &&
+                ['running', 'waiting'].includes(task.status);
+              if (!staying) {
+                const queued = job.attention.pushCue(
+                  incoming,
+                  cue,
+                  incoming.type === 'block-edited' ? ENGLISH_TUTOR_CUE_MS : 0,
+                );
+                if (!queued && job.attention.rejected)
+                  log('消息队列已满，当前消息未接收。');
+                else if (
+                  queued &&
+                  ['idle', 'failed'].includes(job.view.status)
+                ) {
+                  log('看到玩家在世界里的动作，用英语回应一次。');
+                  ctx.wake(job);
+                }
+              }
+              return;
+            }
+          }
+          const event = tutor
+            ? addressEnglishTutor(incoming, selfId)
+            : incoming;
+          if (!job.attention.accept(event, selfId)) return;
 
           const command = (event.data as ChatData).text
             .trim()
@@ -141,8 +178,12 @@ export class AgentHost {
                 agentPermissions(job.view).chat
                   ? session.request('chat', {
                       text: command.startsWith('取消')
-                        ? '任务已取消，我会留在这里待命。'
-                        : '任务已暂停，进度已保留。',
+                        ? tutor
+                          ? 'Task cancelled. I will stay here with you.'
+                          : '任务已取消，我会留在这里待命。'
+                        : tutor
+                          ? 'Task paused. We can keep talking.'
+                          : '任务已暂停，进度已保留。',
                       scope: 'private',
                       recipients: [event.actor],
                     })

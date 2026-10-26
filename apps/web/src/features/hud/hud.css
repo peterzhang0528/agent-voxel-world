@@ -68,6 +68,20 @@
 .in-game .hud-navigation button {
   background: var(--hud-paper);
 }
+.hud-navigation .tutor-invite {
+  position: relative;
+  display: flex;
+}
+.hud-navigation .tutor-invite .agent-error {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  width: min(280px, calc(100vw - 24px));
+  margin: 0;
+  text-align: left;
+  pointer-events: auto;
+}
 .in-game .hud-navigation button[aria-expanded='true'] {
   background: var(--color-hud-ink);
   color: white;
@@ -323,8 +337,16 @@
 }
 .spatial-toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 5px;
+}
+.spatial-speak-note {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: right;
 }
 .in-game .spatial-toolbar button {
   background: var(--hud-paper);

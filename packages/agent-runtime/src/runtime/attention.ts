@@ -40,6 +40,52 @@ export class AgentAttention {
     this.wake?.();
     return true;
   }
+  /** A play event turned into one spoken-English cue. Rate limit still consumes seq. */
+  private lastCueAt = 0;
+  pushCue(
+    event: WorldEvent,
+    text: string,
+    minIntervalMs: number,
+    now = Date.now(),
+  ) {
+    this.rejected = false;
+    if (event.seq <= this.lastSeq || !text.trim()) return false;
+    this.lastSeq = event.seq;
+    if (
+      minIntervalMs > 0 &&
+      this.lastCueAt > 0 &&
+      now - this.lastCueAt < minIntervalMs
+    )
+      return false;
+    const raw =
+      event.data &&
+      typeof event.data === 'object' &&
+      'name' in event.data &&
+      typeof (event.data as { name?: unknown }).name === 'string'
+        ? (event.data as { name: string }).name
+        : 'Learner';
+    const queued = this.enqueue({
+      seq: event.seq,
+      type: 'chat',
+      actor: event.actor,
+      actorKind: 'human',
+      at: event.at,
+      data: {
+        scope: 'nearby',
+        recipients: [],
+        kind: 'text',
+        name:
+          raw
+            .replace(/[\r\n]/g, ' ')
+            .trim()
+            .slice(0, 24) || 'Learner',
+        text: text.trim(),
+        transcriptAvailable: true,
+      },
+    });
+    if (queued) this.lastCueAt = now;
+    return queued;
+  }
   take() {
     return this.queue.shift();
   }

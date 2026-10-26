@@ -63,6 +63,31 @@ export function installAgentRoutes(app: Express, manager: AgentManager) {
 
   /**
    * @openapi
+   * /agents/companions/english-tutor:
+   *   post:
+   *     security:
+   *       - ManagementBearer: []
+   *     summary: 邀请或唤醒英语外教陪练
+   *     description: 复用现有 Agent 与任务。已在陪练时不重复创建。需要已配置的模型服务。
+   *     tags:
+   *       - Agents
+   *     responses:
+   *       200:
+   *         description: 英语外教已在世界中
+   *       201:
+   *         description: 新创建了英语外教
+   */
+  app.post(
+    '/agents/companions/english-tutor',
+    route(async (_req, res) => {
+      const result = await manager.inviteEnglishTutor();
+      manager.events.publish('agents', [result.agent.id]);
+      res.status(result.created ? 201 : 200).json(result);
+    }),
+  );
+
+  /**
+   * @openapi
    * /agents/{id}:
    *   put:
    *     security:

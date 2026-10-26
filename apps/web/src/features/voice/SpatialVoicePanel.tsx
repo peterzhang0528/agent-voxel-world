@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ENGLISH_TUTOR_NAME } from '@voxel/shared';
 import {
   SpatialTranscriber,
   SpatialVoice,
@@ -6,6 +7,17 @@ import {
   type TranscriptionState,
 } from '../../audio';
 import type { Connection } from '../../network/connection';
+import { SpeakEnglishButton } from './SpeakEnglishButton';
+
+const speechKey = 'voxel-speech-lang';
+function savedSpeechLang(): 'en' | 'zh' | '' {
+  try {
+    const saved = sessionStorage.getItem(speechKey);
+    return saved === 'en' || saved === 'zh' ? saved : '';
+  } catch {
+    return '';
+  }
+}
 export function SpatialVoicePanel({
   connection,
   expanded,
@@ -30,6 +42,11 @@ export function SpatialVoicePanel({
     partial: '',
     error: '',
   });
+  const [speechLang, setSpeechLang] = useState<'en' | 'zh'>(
+    savedSpeechLang() || 'zh',
+  );
+  const speechLangRef = useRef(speechLang);
+  speechLangRef.current = speechLang;
   const engine = useRef<SpatialVoice | null>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const details = useRef<HTMLDivElement>(null);
@@ -47,7 +64,11 @@ export function SpatialVoicePanel({
       setTranscript,
     );
     voice.onMicrophone = (stream) => {
-      if (stream) void transcriber.start(stream);
+      if (stream)
+        void transcriber.start(
+          stream,
+          speechLangRef.current === 'en' ? 'en-US' : 'zh-CN',
+        );
       else transcriber.stop();
     };
     engine.current = voice;
@@ -69,6 +90,26 @@ export function SpatialVoicePanel({
   useEffect(() => {
     engine.current?.update();
   }, [connection.players, connection.status]);
+  useEffect(() => {
+    if (savedSpeechLang()) return;
+    if (
+      connection.players.some(
+        (player) =>
+          player.connected &&
+          player.kind !== 'human' &&
+          player.name === ENGLISH_TUTOR_NAME,
+      )
+    )
+      setSpeechLang('en');
+  }, [connection.players]);
+  const chooseSpeechLang = (lang: 'en' | 'zh') => {
+    try {
+      sessionStorage.setItem(speechKey, lang);
+    } catch {
+      /* The choice still applies until reload. */
+    }
+    setSpeechLang(lang);
+  };
   const micButton = (
     <button
       aria-label={
@@ -132,6 +173,27 @@ export function SpatialVoicePanel({
         </div>
         <small>18 格内随距离、朝向变化 · {state.connected} 个语音连接</small>
         <small>整句确认后附近 Agent 才会收到；私聊语音仅接收者可听。</small>
+        <div role="group" aria-label="附近语音识别语言">
+          <button
+            type="button"
+            aria-pressed={speechLang === 'en'}
+            onClick={() => chooseSpeechLang('en')}
+          >
+            English
+          </button>
+          <button
+            type="button"
+            aria-pressed={speechLang === 'zh'}
+            onClick={() => chooseSpeechLang('zh')}
+          >
+            中文
+          </button>
+        </div>
+        <small>
+          {speechLang === 'en'
+            ? '英语识别交给本机 Whisper 或语音容器。没有语音服务时，用「说英语」。切换语言后请重新打开麦克风。'
+            : '中文识别为原来的附近语音。跟英语外教说话时请改成 English，或直接点「说英语」。'}
+        </small>
         <small role="status">{transcript.status}</small>
         {transcript.text && (
           <p className="spatial-caption">{transcript.text}</p>
@@ -161,6 +223,13 @@ export function SpatialVoicePanel({
       <div className="spatial-toolbar">
         {micButton}
         {listenButton}
+        <SpeakEnglishButton
+          connection={connection}
+          prepare={async () => {
+            engine.current?.stopMic();
+            await engine.current?.setListening(true);
+          }}
+        />
         <button
           ref={toggle}
           aria-label={expanded ? '收起附近语音' : '展开附近语音'}

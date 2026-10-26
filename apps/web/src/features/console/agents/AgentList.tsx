@@ -4,6 +4,7 @@ import type { ConsoleController } from '../useConsoleController';
 import { AgentDetail } from './AgentDetail';
 import { AgentForm } from './AgentForm';
 import { agentPresentation } from './presentation/agent-presentation';
+import { InviteTutorButton } from '../../world/InviteTutorButton';
 
 type Filter = 'all' | 'online' | 'attention' | 'offline';
 export function AgentList(props: ConsoleController & { active: boolean }) {
@@ -56,6 +57,7 @@ export function AgentList(props: ConsoleController & { active: boolean }) {
           >
             ＋ 创建 Agent
           </button>
+          <InviteTutorButton />
           <div className="agents-filters" role="group" aria-label="筛选角色">
             {(
               [
@@ -100,6 +102,7 @@ export function AgentList(props: ConsoleController & { active: boolean }) {
                   <span className="console-sidebar-copy">
                     <strong title={job.name}>{job.name}</strong>
                     <small>
+                      {job.persona === 'english-tutor' ? '英语外教 · ' : ''}
                       {state.transitioning
                         ? state.presence
                         : state.online

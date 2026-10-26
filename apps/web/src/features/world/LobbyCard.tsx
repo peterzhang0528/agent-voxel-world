@@ -1,3 +1,5 @@
+import { InviteTutorButton } from './InviteTutorButton';
+
 interface LobbyCardProps {
   name: string;
   error?: string;
@@ -22,9 +24,9 @@ export function LobbyCard({
         建成一个世界。
       </h2>
       <p className="lobby-description">
-        和朋友一起探索、搭建，或邀请 AI 伙伴加入。
+        走进世界，英语外教 Mia 会陪你一起搭、一起逛，
         <br />
-        从这里开始，让这个世界多一点可能。
+        用简单英语跟你说话。和朋友一起玩也可以。
       </p>
       <form
         onSubmit={(e) => {
@@ -52,6 +54,7 @@ export function LobbyCard({
       <button className="join-agents" onClick={onCreateAgent}>
         创建 Agent 玩家
       </button>
+      <InviteTutorButton className="join-tutor" />
       <small>同一个共享世界 · 真人与 AI 一起创造</small>
     </div>
   );

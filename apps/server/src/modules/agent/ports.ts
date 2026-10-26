@@ -31,6 +31,7 @@ export interface ArchivePort {
 export interface VoiceServicePort {
   list(): VoiceServiceView[];
   get(id: string): unknown;
+  ensure(id: string, value: unknown): Promise<VoiceServiceView>;
   bind(sessionId: string, serviceId: string): void;
   unbind(sessionId: string): void;
   remove(id: string, inUse: () => boolean): Promise<void>;

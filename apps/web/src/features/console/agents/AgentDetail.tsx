@@ -61,9 +61,11 @@ export function AgentDetail(
         <p>
           {!agentPermissions(job).chat
             ? '发送聊天已关闭，角色不会发送文字或语音回复。可在控制台安排任务和查看进展。'
-            : state.online
-              ? '可在世界中私聊或 @ 交流。关闭控制台后仍保持在线。'
-              : '上线后可交流；原任务会保留，由你决定是否继续。'}
+            : job.persona === 'english-tutor'
+              ? '英语外教会用英语陪你玩。进世界后打开收听，点「说英语」或在附近语音里用英语跟她说话。'
+              : state.online
+                ? '可在世界中私聊或 @ 交流。关闭控制台后仍保持在线。'
+                : '上线后可交流；原任务会保留，由你决定是否继续。'}
         </p>
         {state.occupiesSlot ? (
           <button

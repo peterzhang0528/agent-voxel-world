@@ -147,7 +147,9 @@ export function AgentForm(props: ConsoleController & { disabled: boolean }) {
           </label>
           <p className="agent-hint agents-role-meta" id="agent-role-hint">
             <span>
-              用于后续对话和任务规划。任务需单独安排，执行操作需开启对应权限。
+              {agent.persona === 'english-tutor'
+                ? '这是英语外教陪练。她会用简单英语说话，跟着你一起搭和逛。任务仍可在任务计划里调整。'
+                : '用于后续对话和任务规划。任务需单独安排，执行操作需开启对应权限。'}
             </span>
             <span className="agents-role-count">
               {(agent.roleDescription ?? '').length} /{' '}

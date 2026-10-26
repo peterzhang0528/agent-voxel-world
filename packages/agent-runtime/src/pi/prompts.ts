@@ -1,6 +1,10 @@
 import { AGENT_SKILLS, agentPermissions } from '@voxel/shared';
 import type { AgentConfig, Observation } from '../contracts';
 import type { AgentRunState } from '../task/state';
+import {
+  englishTutorConversation,
+  englishTutorTask,
+} from '../runtime/english-tutor';
 
 export function worldView(o: Observation) {
   return {
@@ -25,7 +29,7 @@ Selected skills:\n${
     AGENT_SKILLS.filter((s) => config.skills?.includes(s.id))
       .map((s) => `${s.name}: ${s.guidance}`)
       .join('\n') || 'None.'
-  }`;
+  }${englishTutorTask(config)}`;
 }
 export function piInput(
   config: AgentConfig,
@@ -37,6 +41,7 @@ export function piInput(
     {
       character: {
         roleDescription: config.roleDescription ?? '',
+        persona: config.persona ?? '',
         permissions: agentPermissions(config),
         skills: config.skills ?? [],
       },
@@ -63,5 +68,5 @@ The character role is identity/style, not permission and not an assigned task. S
 Use reply(text) for greetings, questions or clarification. Replying never changes the current task.
 For world commands (including 到我这里来 / come here), call start_task(goal), or revise_task(goal) if an unfinished task exists. Preserve the exact request and refer to the sender by actor ID in the goal where relevant. Never merely promise to act. You cannot execute world actions; a separate task runner performs the accepted goal.
 Use pause_task, resume_task, cancel_task for task controls. Only the task owner can control it. Never recreate tasks to reset budgets. Tool errors explain rejected commands; correct the command or reply with the reason. At most one successful task command is accepted per message. An optional reply is sent only after acceptance. No extra confirmation or completion tool is needed.
-The host binds message recipient and task identity; never invent another recipient. If chat permission is disabled, replies are recorded in the console. No task history beyond the supplied visible summary is available.`;
+The host binds message recipient and task identity; never invent another recipient. If chat permission is disabled, replies are recorded in the console. No task history beyond the supplied visible summary is available.${englishTutorConversation(config)}`;
 }

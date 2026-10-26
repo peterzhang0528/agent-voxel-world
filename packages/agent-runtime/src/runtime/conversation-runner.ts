@@ -134,6 +134,7 @@ export class ConversationRunner {
         input: JSON.stringify({
           character: {
             roleDescription: config.roleDescription ?? '',
+            persona: config.persona ?? '',
             skills: config.skills ?? [],
           },
           observation: worldView({
